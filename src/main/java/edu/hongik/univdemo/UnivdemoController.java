@@ -2,7 +2,6 @@ package edu.hongik.univdemo;
 
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.ResponseEntity;
@@ -26,12 +25,34 @@ public class UnivdemoController {
 	
 	@GetMapping("/degree")
 	public ResponseEntity<?> degree(@RequestParam(defaultValue = "") String name) {
-		return resolveStudent(studentRepository::findDegreeByName, name);
+		List<Map<String, String>> list = studentRepository.findDegreeByName(name);
+		if (list.size() == 0) {
+			return ResponseEntity
+					.status(404)
+					.body(Map.of("error", "No such student"));
+		}
+		if (list.size() > 1) {
+			return ResponseEntity
+					.status(409)
+					.body(Map.of("error", "There are multiple students with the same name. Please provide an email address instead."));
+		}
+		return ResponseEntity.ok(list.get(0));
 	}
 	
 	@GetMapping("/email")
 	public ResponseEntity<?> email(@RequestParam(defaultValue = "") String name) {
-		return resolveStudent(studentRepository::findEmailByName, name);
+		List<Map<String, String>> list = studentRepository.findEmailByName(name);
+		if (list.size() == 0) {
+			return ResponseEntity
+					.status(404)
+					.body(Map.of("error", "No such student"));
+		}
+		if (list.size() > 1) {
+			return ResponseEntity
+					.status(409)
+					.body(Map.of("error", "There are multiple students with the same name. Please contact the administrator by phone."));
+		}
+		return ResponseEntity.ok(list.get(0));
 	}
 	
 	@GetMapping("/stat")
@@ -52,7 +73,7 @@ public class UnivdemoController {
 		}
 		if (studentRepository.findDegreeByName(student.name()).size() != 0) {
 			return ResponseEntity
-					.status(400)
+					.status(409)
 					.body(Map.of("error", "Already registered"));
 		}
 		
@@ -61,28 +82,12 @@ public class UnivdemoController {
 		} catch (DataAccessException e) {
 			e.printStackTrace();
 			return ResponseEntity
-					.status(400)
+					.status(500)
 					.body(Map.of("error", "Something crashed."));
 		}
 		return ResponseEntity
-				.status(200)
+				.status(201)
 				.body(Map.of("message", "Registration successful"));
-	}
-	
-
-	private ResponseEntity<?> resolveStudent(Function<String, List<Map<String, String>>> queryFunc, String name) {
-		List<Map<String, String>> list = queryFunc.apply(name);
-		if (list.size() == 0) {
-			return ResponseEntity
-					.status(404)
-					.body(Map.of("error", "No such student"));
-		}
-		if (list.size() > 1) {
-			return ResponseEntity
-					.status(400)
-					.body(Map.of("error", "There are multiple students with the same name. Please contact the administrator by phone."));
-		}
-		return ResponseEntity.ok(list.get(0));
 	}
 	
 }
